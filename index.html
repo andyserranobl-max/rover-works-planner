@@ -98,7 +98,7 @@
         /* MODAL */
         #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; }
         .modal-box { background: var(--panel); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--highlight); }
-        textarea { width: 100%; height: 80px; background: #080808; color: var(--highlight); border: 1px solid #444; padding: 15px; font-family: 'Courier New', monospace; font-size: 1.1rem; resize: none; margin: 15px 0; border-radius: 4px; }
+        textarea { width: 100%; height: 120px; background: #080808; color: var(--highlight); border: 1px solid #444; padding: 15px; font-family: 'Courier New', monospace; font-size: 1.1rem; resize: none; margin: 15px 0; border-radius: 4px; }
 
     </style>
 </head>
@@ -153,7 +153,7 @@
 <div id="modal">
     <div class="modal-box">
         <h3 style="color: var(--highlight); margin-top: 0;">Generated Code</h3>
-        <p style="color: #aaa;">Copy this into <code>tCommands</code>:</p>
+        <p style="color: #aaa;">Copy this into your Arduino code:</p>
         <textarea id="output-code" readonly onclick="this.select()"></textarea>
         <div style="text-align: right;">
             <button class="primary" style="width: auto; padding: 8px 25px; margin-top: 0;" onclick="document.getElementById('modal').style.display='none'">Close</button>
@@ -371,7 +371,6 @@
         const overrideKey = `${curr}-${prevId}`;
         if (OVERRIDES[overrideKey]) {
             const forcedNext = OVERRIDES[overrideKey][cmd];
-            // If explicit override exists (even null), return it
             if (forcedNext !== undefined) return forcedNext;
         }
 
@@ -511,8 +510,15 @@
 
     function generateCode() {
         if(history.length === 0) { alert("No path created."); return; }
+        
         const arr = history.map(h => h.cmd);
-        document.getElementById('output-code').value = `{ ${arr.join(', ')} }`;
+        const count = arr.length;
+        const outputString = `const int MAX_T_COMMANDS = ${count};
+
+int tCommands[MAX_T_COMMANDS] = { ${arr.join(', ')} };
+const int numTCommands = ${count};`;
+
+        document.getElementById('output-code').value = outputString;
         document.getElementById('modal').style.display = 'flex';
     }
 
