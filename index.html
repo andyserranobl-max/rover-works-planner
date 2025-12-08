@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGV Planner - Rover Works</title>
+    <style>
+        :root {
+            /* PURDUE INSPIRED DARK THEME */
+            --bg: #101010;             /* Slightly deeper black */
+            --panel: #1a1a1a;
+            --text: #e0e0e0;
+            
+            /* Old Gold & Black Palette */
+            --highlight: #CEB888;      /* Purdue Gold (Text/Headers/Path) */
+            --accent: #C28E0E;         /* Richer Gold/Amber (Active Node/Cursor) */
+            
+            --path-base: #333;
+            --path-hover: #555;
+            --path-selected: #fff;
+            --path-active: #CEB888;    /* Path turns Gold when active */
+            --danger: #ff5252;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        #sidebar {
+            width: 320px;
+            background-color: var(--panel);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #2a2a2a;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        h2 { margin-top: 0; color: var(--highlight); font-size: 1.1rem; text-transform: uppercase; border-bottom: 2px solid #333; padding-bottom: 10px; letter-spacing: 1px; }
+        
+        .status-box { background: rgba(255,255,255,0.02); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; transition: border-color 0.3s; }
+        .status-box.active { border-color: var(--highlight); background: rgba(206, 184, 136, 0.05); }
+        .label { font-size: 0.75rem; color: #888; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 5px; }
+        .val { font-size: 1.1rem; color: var(--highlight); font-weight: bold; line-height: 1.3; }
+
+        select, button { width: 100%; padding: 12px; background: #2b2b2b; border: 1px solid #444; color: white; border-radius: 4px; font-size: 0.95rem; margin-top: 8px; cursor: pointer; transition: 0.2s; outline: none; }
+        select:hover, button:hover { background: #3b3b3b; border-color: #666; }
+        
+        /* Updated Button Styles for Gold Theme */
+        button.primary { background: rgba(206, 184, 136, 0.1); color: var(--highlight); border: 1px solid var(--highlight); font-weight: bold; margin-top: 15px; }
+        button.primary:hover { background: rgba(206, 184, 136, 0.25); color: #fff; }
+
+        button.undo { background: rgba(255, 255, 255, 0.05); color: #bbb; border: 1px solid #555; margin-top: 10px; }
+        button.undo:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+        
+        button.reset { background: rgba(255, 82, 82, 0.1); color: var(--danger); border: 1px solid var(--danger); font-size: 0.85rem; margin-top: 10px; }
+        button.reset:hover { background: rgba(255, 82, 82, 0.25); color: #fff; }
+
+        #log { flex-grow: 1; overflow-y: auto; background: #0a0a0a; border: 1px solid #333; border-radius: 4px; padding: 10px; font-family: 'Courier New', monospace; margin-bottom: 15px; }
+        .log-entry { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #222; font-size: 0.85rem; }
+        .log-entry:last-child { border-bottom: none; color: var(--highlight); }
+        .log-cmd { color: var(--highlight); font-weight: bold; }
+
+        /* MAP */
+        #map-area { flex-grow: 1; position: relative; background: #121212; background-image: radial-gradient(#2a2a2a 1px, transparent 1px); background-size: 20px 20px; }
+        svg { width: 100%; height: 100%; }
+
+        /* Branding Text Styling - UPDATED SIZE */
+        .map-title { font-family: 'Segoe UI', sans-serif; font-weight: 800; fill: var(--text); opacity: 0.08; text-anchor: middle; user-select: none; pointer-events: none; }
+        .map-subtitle { font-family: 'Segoe UI', sans-serif; font-weight: 300; fill: var(--highlight); opacity: 0.15; text-anchor: middle; letter-spacing: 6px; text-transform: uppercase; user-select: none; pointer-events: none; }
+
+        .track-bg { fill: none; stroke: var(--path-base); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s; }
+        .track-bg.selectable { cursor: pointer; }
+        .track-bg.selectable:hover { stroke: var(--path-hover); stroke-width: 8; }
+        .track-bg.selected-init { stroke: var(--path-selected); stroke-width: 8; filter: drop-shadow(0 0 5px white); }
+
+        .track-active { fill: none; stroke: var(--path-active); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px var(--path-active)); pointer-events: none; }
+        
+        .node { fill: #222; stroke: #666; stroke-width: 2; r: 5; cursor: pointer; transition: all 0.2s; }
+        .node:hover { r: 8; fill: #fff; stroke: var(--highlight); }
+        .node.current { fill: var(--accent); stroke: #fff; r: 9; stroke-width: 3; box-shadow: 0 0 15px var(--accent); }
+        .node.visited { fill: var(--highlight); stroke: var(--highlight); r: 4; }
+        .node.valid-start { stroke: #fff; r: 7; fill: var(--path-selected); animation: pulse 1s infinite; }
+        
+        @keyframes pulse { 0% { r: 6; } 50% { r: 8; } 100% { r: 6; } }
+
+        .node-label { fill: #666; font-size: 10px; font-family: sans-serif; font-weight: bold; pointer-events: none; user-select: none; }
+        .icon { font-size: 14px; text-anchor: middle; fill: #fff; font-weight: bold; pointer-events: none; text-shadow: 0 0 3px #000; }
+
+        /* MODAL */
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; }
+        .modal-box { background: var(--panel); padding: 30px; border-radius: 12px; width: 500px; border: 1px solid var(--highlight); }
+        textarea { width: 100%; height: 80px; background: #080808; color: var(--highlight); border: 1px solid #444; padding: 15px; font-family: 'Courier New', monospace; font-size: 1.1rem; resize: none; margin: 15px 0; border-radius: 4px; }
+
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>AGV Planner</h2>
+    
+    <div id="status-panel" class="status-box">
+        <span class="label">Current Status</span>
+        <div id="status-text" class="val">Initialize Map</div>
+    </div>
+
+    <div class="status-box" id="controls" style="opacity: 0.5; pointer-events: none;">
+        <span class="label">Select Action</span>
+        <select id="cmd-select">
+            <option value="0" selected>0: Follow Line</option>
+            <option value="5">5: Turn Right</option>
+            <option value="6">6: Turn Left</option>
+            <option value="1">1: Speed 50%</option>
+            <option value="2">2: Speed 25%</option>
+            <option value="3">3: Speed 100%</option>
+            <option value="10">10: Speed 4 MPH</option>
+            <option value="7">7: Task (Conveyor)</option>
+            <option value="8">8: Task (Pins Down)</option>
+            <option value="9">9: Task (Pins Up)</option>
+        </select>
+        <button class="primary" onclick="addCommand()">EXECUTE</button>
+        <button class="undo" onclick="undoLast()">UNDO LAST STEP</button>
+    </div>
+
+    <div id="log"></div>
+    <button class="reset" onclick="resetPlanner()">RESET MAP</button>
+    <button class="primary" style="margin-top: 10px; height: 50px; background: var(--highlight); color: #000; border: none;" onclick="generateCode()">GENERATE CODE</button>
+</div>
+
+<div id="map-area">
+    <svg id="svg-map" viewBox="0 0 1200 850" preserveAspectRatio="xMidYMid meet">
+        <g id="layer-branding">
+            <text x="650" y="440" font-size="65" class="map-title">ROVER WORKS</text>
+            <text x="650" y="490" font-size="20" class="map-subtitle">Senior Design</text>
+        </g>
+        
+        <g id="layer-tracks"></g>
+        <g id="layer-active-path"></g>
+        <g id="layer-nodes"></g>
+        <g id="layer-labels"></g>
+        <g id="layer-icons"></g>
+    </svg>
+</div>
+
+<div id="modal">
+    <div class="modal-box">
+        <h3 style="color: var(--highlight); margin-top: 0;">Generated Code</h3>
+        <p style="color: #aaa;">Copy this into <code>tCommands</code>:</p>
+        <textarea id="output-code" readonly onclick="this.select()"></textarea>
+        <div style="text-align: right;">
+            <button class="primary" style="width: auto; padding: 8px 25px; margin-top: 0;" onclick="document.getElementById('modal').style.display='none'">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 1. TOPOLOGY & COORDINATES
+    // ==========================================
+    
+    const nodes = {
+        // Bottom Box
+        1: {x: 150, y: 750}, 2: {x: 150, y: 650}, 3: {x: 220, y: 650},
+        4: {x: 290, y: 650}, 5: {x: 290, y: 750}, 6: {x: 400, y: 750},
+
+        // Node 7: Exact Intersection
+        7: {x: 1100, y: 700},
+
+        // Diagonal
+        8: {x: 900, y: 350}, 9: {x: 650, y: 150},
+
+        // Ladder Top Rail
+        17: {x: 100, y: 100}, 15: {x: 200, y: 100}, 13: {x: 300, y: 100}, 11: {x: 400, y: 100},
+        
+        // Ladder Bottom Rail
+        16: {x: 100, y: 200}, 14: {x: 200, y: 200}, 12: {x: 300, y: 200}, 10: {x: 400, y: 200},
+
+        // Top Left Intersection
+        18: {x: 50, y: 200}, 
+
+        // Inner Left Rail
+        19: {x: 100, y: 300}, 20: {x: 100, y: 400}, 21: {x: 100, y: 500}
+    };
+
+    const paths = {
+        "1-2": `M 150 750 L 150 650`, 
+        "1-5": `M 150 750 L 290 750`, 
+        "2-3": `M 150 650 L 220 650`, "3-4": `M 220 650 L 290 650`,
+        "4-5": `M 290 650 L 290 750`, "5-6": `M 290 750 L 400 750`,
+        "6-7": `M 400 750 L 1100 750 L 1100 700`,
+        "4-7": `M 290 650 L 400 650 Q 450 680 500 650 Q 550 620 600 650 Q 650 680 700 650 Q 750 620 800 650 Q 850 680 900 650 Q 950 650 1000 700 L 1100 700`,
+        "7-8": `M 1100 700 L 1100 550 L 900 350`, 
+        "8-9": `M 900 350 L 700 150 L 650 150`,
+        "9-10": `M 650 150 L 650 200 L 400 200`, "9-11": `M 650 150 L 650 100 L 400 100`,
+        "10-12": `M 400 200 L 300 200`, "12-14": `M 300 200 L 200 200`, "14-16": `M 200 200 L 100 200`,
+        "11-13": `M 400 100 L 300 100`, "13-15": `M 300 100 L 200 100`, "15-17": `M 200 100 L 100 100`,
+        "10-11": `M 400 200 L 400 100`, "12-13": `M 300 200 L 300 100`,
+        "14-15": `M 200 200 L 200 100`, "16-17": `M 100 200 L 100 100`,
+        "17-18": `M 100 100 L 50 100 L 50 200`,
+        "16-18": `M 100 200 L 50 200`,
+        "18-1-outer": `M 50 200 L 50 750 L 150 750`,
+        "16-19": `M 100 200 L 100 300`,
+        "19-20": `M 100 300 L 100 400`,
+        "20-21": `M 100 400 L 100 500`,
+        "21-2": `M 100 500 L 100 650 L 150 650`,
+        "20-21-loop": `M 100 400 L 350 400 L 350 500 L 100 500`
+    };
+
+    // ==========================================
+    // 2. VECTOR LOGIC & OVERRIDES
+    // ==========================================
+    
+    // Adjacency List for Vector Math (Fallbacks)
+    const ADJ = {
+        1: [{id: 2, x: 150, y: 650}, {id: 5, x: 290, y: 750}],
+        2: [{id: 3, x: 220, y: 650}, {id: 1, x: 150, y: 750}, {id: 21, x: 100, y: 650}],
+        3: [{id: 2, ...nodes[2]}, {id: 4, ...nodes[4]}],
+        4: [{id: 3, ...nodes[3]}, {id: 5, ...nodes[5]}, {id: 7, ...nodes[7]}],
+        5: [{id: 4, ...nodes[4]}, {id: 6, ...nodes[6]}, {id: 1, x: 150, y: 750}],
+        6: [{id: 5, ...nodes[5]}, {id: 7, ...nodes[7]}],
+        7: [{id: 6, ...nodes[6]}, {id: 4, ...nodes[4]}, {id: 8, ...nodes[8]}],
+        8: [{id: 7, ...nodes[7]}, {id: 9, ...nodes[9]}],
+        9: [{id: 8, ...nodes[8]}, {id: 10, ...nodes[10]}, {id: 11, ...nodes[11]}],
+        10: [{id: 9, ...nodes[9]}, {id: 12, ...nodes[12]}, {id: 11, ...nodes[11]}],
+        11: [{id: 9, ...nodes[9]}, {id: 13, ...nodes[13]}, {id: 10, ...nodes[10]}],
+        12: [{id: 10, ...nodes[10]}, {id: 14, ...nodes[14]}, {id: 13, ...nodes[13]}],
+        13: [{id: 11, ...nodes[11]}, {id: 15, ...nodes[15]}, {id: 12, ...nodes[12]}],
+        14: [{id: 12, ...nodes[12]}, {id: 16, ...nodes[16]}, {id: 15, ...nodes[15]}],
+        15: [{id: 13, ...nodes[13]}, {id: 17, ...nodes[17]}, {id: 14, ...nodes[14]}],
+        16: [{id: 14, ...nodes[14]}, {id: 18, ...nodes[18]}, {id: 17, ...nodes[17]}, {id: 19, ...nodes[19]}],
+        17: [{id: 15, ...nodes[15]}, {id: 18, ...nodes[18]}, {id: 16, ...nodes[16]}],
+        18: [{id: 17, x: 50, y: 100}, {id: 16, ...nodes[16]}, {id: 1, x: 50, y: 300}],
+        19: [{id: 16, ...nodes[16]}, {id: 20, ...nodes[20]}],
+        20: [{id: 19, ...nodes[19]}, {id: 21, x: 100, y: 500}, {id: 21, x: 350, y: 400}],
+        21: [{id: 20, ...nodes[20]}, {id: 2, x: 100, y: 650}]
+    };
+
+    // MANUAL LOGIC OVERRIDES
+    // Key format: "CurrentNodeID-PreviousNodeID"
+    // Value: { 0: NextId, 5: NextId, 6: NextId } (0=Straight, 5=Right, 6=Left)
+    const OVERRIDES = {
+        // Node 1 Fixes
+        "1-5":  { 0: 18 },          // From 5: Straight->18
+        "1-18": { 0: 5, 6: 2 },     // From 18: Straight->5, Left->2
+        "1-2":  { 5: 18 },          // From 2: Right->18
+
+        // Node 7 Fixes
+        "7-4":  { 0: null },        // From 4: Straight->Invalid
+        "7-6":  { 0: 8, 6: 4 },     // From 6: Straight->8, Left->4
+        "7-8":  { 0: 6, 5: 4 },     // From 8: Straight->6 (towards 5), Right->4
+
+        // Node 9 Fixes (The Hub)
+        "9-8":  { 5: 11, 6: 10 },   // From 8: Right->11, Left->10
+        "9-10": { 0: 11 },          // From 10: Straight->11
+        "9-11": { 6: 8, 0: 10 },    // From 11: Left->8, Straight->10
+
+        // Existing Overrides
+        "17-15": { 0: 18, 6: 16 }, 
+        "2-21": { 0: 3, 5: 1 }, 
+    };
+
+    // ==========================================
+    // 3. ENGINE & STATE
+    // ==========================================
+    let currentNode = null;
+    let previousNodeId = null; 
+    let previousNodeCoords = null; 
+    let history = []; 
+    let initState = 0; 
+    let selectedTrackNodes = null;
+
+    function init() {
+        const tLayer = document.getElementById('layer-tracks');
+        const nLayer = document.getElementById('layer-nodes');
+        const lLayer = document.getElementById('layer-labels');
+
+        for(let k in paths) {
+            let p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            p.setAttribute("d", paths[k]);
+            p.setAttribute("class", "track-bg");
+            let parts = k.match(/^(\d+)-(\d+)/);
+            if (parts) {
+                p.onclick = (e) => onTrackClick(parseInt(parts[1]), parseInt(parts[2]), e.target);
+            }
+            tLayer.appendChild(p);
+        }
+
+        for(let k in nodes) {
+            let c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            c.setAttribute("cx", nodes[k].x); c.setAttribute("cy", nodes[k].y);
+            c.setAttribute("class", "node");
+            c.setAttribute("id", "n"+k);
+            c.onclick = () => onNodeClick(parseInt(k));
+            nLayer.appendChild(c);
+
+            let txt = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            txt.setAttribute("x", nodes[k].x + 12); txt.setAttribute("y", nodes[k].y - 12);
+            txt.setAttribute("class", "node-label");
+            txt.textContent = k;
+            lLayer.appendChild(txt);
+        }
+        startInit();
+    }
+
+    function startInit() {
+        initState = 1;
+        document.getElementById('status-text').textContent = "Step 1: Click a Track Line";
+        document.getElementById('status-panel').classList.add('active');
+        document.getElementById('controls').style.opacity = 0.5;
+        document.getElementById('controls').style.pointerEvents = 'none';
+        document.querySelectorAll('.track-bg').forEach(p => p.classList.add('selectable'));
+        clearMapVisuals();
+    }
+
+    function onTrackClick(n1, n2, element) {
+        if (initState !== 1) return;
+        document.querySelectorAll('.track-bg').forEach(p => p.classList.remove('selected-init', 'selectable'));
+        element.classList.add('selected-init');
+        selectedTrackNodes = {n1, n2};
+        initState = 2;
+        document.getElementById('status-text').textContent = `Step 2: Click Start Node (${n1} or ${n2})`;
+        document.getElementById('n'+n1).classList.add('valid-start');
+        document.getElementById('n'+n2).classList.add('valid-start');
+    }
+
+    function onNodeClick(id) {
+        if (initState === 2) {
+            if (id !== selectedTrackNodes.n1 && id !== selectedTrackNodes.n2) {
+                alert("Please click one of the nodes connected to the selected track.");
+                return;
+            }
+            currentNode = id;
+            previousNodeId = (id === selectedTrackNodes.n1) ? selectedTrackNodes.n2 : selectedTrackNodes.n1;
+            updatePreviousCoords(currentNode, previousNodeId);
+            finishInit();
+        }
+    }
+
+    function updatePreviousCoords(curr, prevId) {
+        const adjList = ADJ[curr];
+        const neighborInfo = adjList.find(n => n.id === prevId);
+        if (neighborInfo) {
+            previousNodeCoords = { x: neighborInfo.x, y: neighborInfo.y };
+        } else {
+            previousNodeCoords = { x: nodes[prevId].x, y: nodes[prevId].y };
+        }
+    }
+
+    function finishInit() {
+        initState = 0;
+        document.getElementById('status-panel').classList.remove('active');
+        document.getElementById('controls').style.opacity = 1;
+        document.getElementById('controls').style.pointerEvents = 'auto';
+        document.querySelectorAll('.node').forEach(n => n.classList.remove('valid-start'));
+        drawPath(previousNodeId, currentNode, 0, true);
+        document.getElementById('n'+currentNode).classList.add('current');
+        document.getElementById('status-text').textContent = `At Node ${currentNode}`;
+    }
+
+    function calculateNextNode(curr, prevId, prevXY, cmd) {
+        // 1. OVERRIDES
+        const overrideKey = `${curr}-${prevId}`;
+        if (OVERRIDES[overrideKey]) {
+            const forcedNext = OVERRIDES[overrideKey][cmd];
+            // If explicit override exists (even null), return it
+            if (forcedNext !== undefined) return forcedNext;
+        }
+
+        // 2. VECTOR MATH
+        const currXY = nodes[curr];
+        const vecIn = { x: currXY.x - prevXY.x, y: currXY.y - prevXY.y };
+        const angleIn = Math.atan2(vecIn.y, vecIn.x);
+
+        let turn = 0;
+        if (cmd === 5) turn = Math.PI / 2;
+        if (cmd === 6) turn = -Math.PI / 2;
+        
+        const targetAngle = angleIn + turn;
+        const neighbors = ADJ[curr];
+        if (!neighbors) return null;
+
+        let bestNode = null;
+        let minDiff = Infinity;
+
+        for (let n of neighbors) {
+            if (n.id === prevId) continue; 
+
+            const vecN = { x: n.x - currXY.x, y: n.y - currXY.y };
+            const angleN = Math.atan2(vecN.y, vecN.x);
+            let diff = Math.abs(angleN - targetAngle);
+            while (diff > Math.PI) diff -= 2 * Math.PI;
+            diff = Math.abs(diff);
+
+            if (diff < minDiff) {
+                minDiff = diff;
+                bestNode = n.id;
+            }
+        }
+        if (minDiff > Math.PI / 4) return null;
+        return bestNode;
+    }
+
+    function addCommand() {
+        const cmd = parseInt(document.getElementById('cmd-select').value);
+        let navCmd = (cmd === 0 || cmd === 5 || cmd === 6) ? cmd : 0;
+        
+        let next = calculateNextNode(currentNode, previousNodeId, previousNodeCoords, navCmd);
+        
+        if(!next) { alert("Invalid move."); return; }
+
+        const visualId = drawPath(currentNode, next, cmd);
+        addIcon(currentNode, cmd, visualId);
+        
+        history.push({
+            cmd: cmd,
+            prevId: previousNodeId,
+            prevCoords: previousNodeCoords,
+            curr: currentNode,
+            next: next,
+            visId: visualId
+        });
+
+        const entry = document.createElement('div');
+        entry.className = "log-entry";
+        entry.id = "log-" + visualId;
+        entry.innerHTML = `<span class="log-node">Node ${currentNode}&rarr;${next}</span> <span class="log-cmd">Cmd ${cmd}</span>`;
+        document.getElementById('log').appendChild(entry);
+        document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+
+        document.getElementById('n'+currentNode).classList.remove('current');
+        document.getElementById('n'+currentNode).classList.add('visited');
+        
+        previousNodeId = currentNode;
+        
+        const nextAdj = ADJ[next];
+        const backLink = nextAdj.find(n => n.id === currentNode);
+        if (backLink) {
+            previousNodeCoords = { x: backLink.x, y: backLink.y };
+        } else {
+            previousNodeCoords = { x: nodes[currentNode].x, y: nodes[currentNode].y };
+        }
+
+        currentNode = next;
+        document.getElementById('n'+currentNode).classList.add('current');
+        document.getElementById('status-text').textContent = `At Node ${currentNode}`;
+        document.getElementById('cmd-select').value = "0";
+    }
+
+    function undoLast() {
+        if (history.length === 0) return;
+        const lastStep = history.pop();
+        
+        document.getElementById('n'+currentNode).classList.remove('current');
+        currentNode = lastStep.curr;
+        previousNodeId = lastStep.prevId;
+        previousNodeCoords = lastStep.prevCoords;
+        
+        document.getElementById('n'+currentNode).classList.add('current');
+        document.getElementById('n'+currentNode).classList.remove('visited'); 
+        document.getElementById('status-text').textContent = `At Node ${currentNode}`;
+
+        const p = document.getElementById("path-" + lastStep.visId);
+        if(p) p.remove();
+        const i = document.getElementById("icon-" + lastStep.visId);
+        if(i) i.remove();
+        const l = document.getElementById("log-" + lastStep.visId);
+        if(l) l.remove();
+    }
+
+    function drawPath(n1, n2, cmd, isInit = false) {
+        let key = "";
+        
+        if(n1===18 && n2===1) key="18-1-outer";
+        else if(n1===21 && n2===2) key="21-2";
+        else if((n1===20 && n2===21 && cmd===6)) key = "20-21-loop";
+        else if((n1===1 && n2===5 && cmd===5)) key = "1-5-loop"; 
+        else { key = paths[`${n1}-${n2}`] ? `${n1}-${n2}` : `${n2}-${n1}`; }
+        
+        let d = paths[key];
+        if(!d) d = `M ${nodes[n1].x} ${nodes[n1].y} L ${nodes[n2].x} ${nodes[n2].y}`;
+
+        const uid = Date.now() + Math.random();
+        let p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        p.setAttribute("d", d);
+        p.setAttribute("class", "track-active");
+        p.id = "path-" + uid;
+        if(isInit) p.style.opacity = 0.3; 
+        document.getElementById('layer-active-path').appendChild(p);
+        return uid;
+    }
+
+    function addIcon(id, cmd, uid) {
+        if(cmd === 0) return;
+        let sym = (cmd===5)?"⤵":(cmd===6)?"⤴":([1,2,3,10].includes(cmd))?"⚡":"⚙";
+        let t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        t.setAttribute("x", nodes[id].x); t.setAttribute("y", nodes[id].y - 15);
+        t.setAttribute("class", "icon");
+        t.textContent = sym;
+        t.id = "icon-" + uid;
+        document.getElementById('layer-icons').appendChild(t);
+    }
+
+    function generateCode() {
+        if(history.length === 0) { alert("No path created."); return; }
+        const arr = history.map(h => h.cmd);
+        document.getElementById('output-code').value = `{ ${arr.join(', ')} }`;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function resetPlanner() {
+        if(!confirm("Are you sure you want to reset?")) return;
+        clearMapVisuals();
+        startInit();
+    }
+
+    function clearMapVisuals() {
+        history = [];
+        document.getElementById('layer-active-path').innerHTML = '';
+        document.getElementById('layer-icons').innerHTML = '';
+        document.querySelectorAll('.node').forEach(n => n.classList.remove('current', 'visited', 'valid-start'));
+        document.querySelectorAll('.track-bg').forEach(t => t.classList.remove('selected-init'));
+        document.getElementById('log').innerHTML = '';
+    }
+
+    init();
+
+</script>
+</body>
+</html>
