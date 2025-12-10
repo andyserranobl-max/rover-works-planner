@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rover Works | Senior Design Team</title>
+    <style>
+        :root {
+            --bg-dark: #101010;
+            --panel-dark: #1a1a1a;
+            --purdue-gold: #CEB888;
+            --purdue-black: #000000;
+            --text-light: #e0e0e0;
+            --text-muted: #a0a0a0;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        /* --- Header / Hero Section --- */
+        header {
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('assets/header-bg.jpg'); /* Optional bg image */
+            background-size: cover;
+            background-color: var(--purdue-black);
+            padding: 60px 20px;
+            text-align: center;
+            border-bottom: 4px solid var(--purdue-gold);
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            margin: 0;
+            color: var(--purdue-gold);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            color: white;
+            font-weight: 300;
+            margin-top: 10px;
+            font-size: 1.5rem;
+        }
+
+        .nav-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 10px 25px;
+            background: var(--purdue-gold);
+            color: black;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        .nav-btn:hover { background: #b89f65; }
+
+        /* --- Main Content Layout --- */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        section { margin-bottom: 60px; }
+
+        .section-title {
+            font-size: 2rem;
+            border-left: 5px solid var(--purdue-gold);
+            padding-left: 15px;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        /* --- Project Description --- */
+        .project-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+        
+        .card {
+            background: var(--panel-dark);
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .highlight-text { color: var(--purdue-gold); font-weight: bold; }
+
+        /* --- Video Embed --- */
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+
+        /* --- Poster Download --- */
+        .poster-container {
+            text-align: center;
+            background: #151515;
+            padding: 40px;
+            border-radius: 8px;
+            border: 1px dashed var(--purdue-gold);
+        }
+        .poster-btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: transparent;
+            border: 2px solid var(--purdue-gold);
+            color: var(--purdue-gold);
+            font-size: 1.1rem;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .poster-btn:hover {
+            background: var(--purdue-gold);
+            color: black;
+        }
+
+        /* --- Team Grid --- */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .member-card {
+            background: var(--panel-dark);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #333;
+            transition: transform 0.3s;
+            text-align: center;
+            padding-bottom: 20px;
+        }
+        .member-card:hover { transform: translateY(-5px); border-color: var(--purdue-gold); }
+
+        .member-img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            object-position: top;
+            background-color: #222;
+            border-bottom: 3px solid var(--purdue-gold);
+        }
+
+        .member-info { padding: 20px; }
+        .member-name { font-size: 1.4rem; color: var(--purdue-gold); margin: 10px 0 5px 0; }
+        .member-role { font-size: 0.9rem; color: #fff; font-weight: bold; margin-bottom: 15px; }
+        .member-bio { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 20px; text-align: left; }
+        
+        .linkedin-link {
+            display: inline-block;
+            padding: 8px 20px;
+            background: #0077b5;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        .linkedin-link:hover { background: #005e93; }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            background: var(--purdue-black);
+            color: #666;
+            margin-top: 50px;
+            border-top: 1px solid #333;
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Rover Works</h1>
+    <h2>Modular Automated Guided Vehicle | Purdue Senior Design</h2>
+    <a href="index.html" class="nav-btn">← Back to AGV Planner</a>
+</header>
+
+<div class="container">
+
+    <section>
+        <div class="section-title">The Project</div>
+        <div class="card">
+            <p>
+                <strong>Rover Works</strong> addresses the gap in the market for affordable warehouse automation. [cite_start]While existing solutions often cost upwards of $30,000, our Modular Automated Guided Vehicle (MAGV) targets a price point near <span class="highlight-text">$2,000</span>, making automation accessible for small facilities[cite: 51, 590].
+            </p>
+            <p>
+                [cite_start]The base unit is a robust 12V system capable of carrying <strong>30 lbs</strong> at speeds up to <strong>4 MPH</strong>[cite: 52]. [cite_start]It features a unique interchangeable top-module system that allows operators to swap between a <strong>Conveyor Module</strong> and a <strong>Pin Docking Unit</strong> in under 60 seconds[cite: 52, 247].
+            </p>
+            <p>
+                [cite_start]Navigation is handled via a sensor array and a custom-built <strong>AGV Planner Interface</strong>, allowing for precise line following, obstacle detection, and logic-based routing[cite: 96, 254].
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-title">System Demonstration</div>
+        <div class="video-wrapper">
+            <iframe src="https://www.youtube.com/embed/hy8t5PL-8Ag?si=J2-f-RUofiraDrk-" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-title">Final Design Poster</div>
+        <div class="poster-container">
+            <p style="margin-bottom: 20px; color: #ccc;">View our detailed engineering analysis, structural validation, and full system architecture.</p>
+            <a href="assets/poster.pdf" target="_blank" class="poster-btn">View / Download Poster (PDF)</a>
+        </div>
+    </section>
+
+    <section>
+        <div class="section-title">The Team</div>
+        <div class="team-grid">
+
+            <div class="member-card">
+                <img src="assets/carlos.jpg" alt="Carlos Serrano" class="member-img">
+                <div class="member-info">
+                    <h3 class="member-name">Carlos Serrano</h3>
+                    <div class="member-role">Manufacturing Lead & Design</div>
+                    <div class="member-bio">
+                        B.S. Mechanical Engineering with a minor in Manufacturing. Carlos brings extensive experience from <strong>Tesla</strong> (Body in White Line) and <strong>Dana Inc</strong>. [cite_start]He specializes in process simulation, tooling design, and maximizing production output[cite: 150, 154, 168].
+                    </div>
+                    <a href="https://www.linkedin.com/in/carlos-serrano-blanco/" target="_blank" class="linkedin-link">LinkedIn Profile</a>
+                </div>
+            </div>
+
+            <div class="member-card">
+                <img src="assets/borja.jpg" alt="Borja Echevarria" class="member-img">
+                <div class="member-info">
+                    <h3 class="member-name">Borja Echevarria</h3>
+                    <div class="member-role">Vehicle Dynamics & Analysis</div>
+                    <div class="member-bio">
+                        With a background at <strong>Cummins</strong> and <strong>ArcelorMittal</strong>, Borja specializes in drivetrain manufacturing and failure analysis. [cite_start]He also served as a Financial Analyst for the Purdue Trading Club and Vehicle Dynamics Engineer for Purdue Electric Racing[cite: 650, 662, 676, 680].
+                    </div>
+                    <a href="https://www.linkedin.com/in/borja-echevarria-6a940a222/" target="_blank" class="linkedin-link">LinkedIn Profile</a>
+                </div>
+            </div>
+
+            <div class="member-card">
+                <img src="assets/daniel.jpg" alt="Daniel Purcell" class="member-img">
+                <div class="member-info">
+                    <h3 class="member-name">Daniel Purcell</h3>
+                    <div class="member-role">Structures & Integration</div>
+                    <div class="member-bio">
+                        An Airframe Structures Intern at <strong>Sikorsky (Lockheed Martin)</strong> and Manufacturing Engineer Intern at <strong>Pratt & Whitney</strong>. [cite_start]Daniel has deep expertise in structural integrity, component design, and systems integration[cite: 702, 709].
+                    </div>
+                    <a href="https://www.linkedin.com/in/danielpurcellwiltz/" target="_blank" class="linkedin-link">LinkedIn Profile</a>
+                </div>
+            </div>
+
+            <div class="member-card">
+                <img src="assets/carles.jpg" alt="Carles Pascuet" class="member-img">
+                <div class="member-info">
+                    <h3 class="member-name">Carles Pascuet</h3>
+                    <div class="member-role">Operations & Optimization</div>
+                    <div class="member-bio">
+                        Gaining experience at <strong>Amazon</strong> and <strong>Talgo</strong>, Carles focuses on operational efficiency and optimization. [cite_start]He has led projects in transshipment optimization and package handling processes for high-volume distribution centers[cite: 9, 16, 24].
+                    </div>
+                    <a href="https://www.linkedin.com/in/carles-pascuet-cuesta/" target="_blank" class="linkedin-link">LinkedIn Profile</a>
+                </div>
+            </div>
+
+            <div class="member-card">
+                <img src="assets/samuel.jpg" alt="Samuel Zapata" class="member-img">
+                <div class="member-info">
+                    <h3 class="member-name">Samuel Zapata</h3>
+                    <div class="member-role">Controls & Automation</div>
+                    <div class="member-bio">
+                        Samuel has worked with <strong>Amazon</strong> on automated conveyor maintenance and <strong>Kiewit</strong> on large-scale mechanical integration. [cite_start]He specializes in PLC logic, continuous improvement, and reliability engineering[cite: 644].
+                    </div>
+                    <a href="https://www.linkedin.com/in/samuel-zapata/" target="_blank" class="linkedin-link">LinkedIn Profile</a>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+<footer>
+    &copy; 2025 Rover Works | Purdue University School of Mechanical Engineering
+</footer>
+
+</body>
+</html>
